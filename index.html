@@ -1,0 +1,9 @@
+export default function handler(req, res) {
+  const match = (req.headers.cookie || '').match(/tncity_user=([^;]+)/);
+  if (!match) return res.status(401).json({ error: 'غير مسجل' });
+  try {
+    res.json(JSON.parse(Buffer.from(match[1], 'base64').toString()));
+  } catch(e) {
+    res.status(401).json({ error: 'خطأ' });
+  }
+}
