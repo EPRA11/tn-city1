@@ -24,16 +24,16 @@ function get(url, token) {
 }
 
 export default async function handler(req, res) {
-  const { code, error } = req.query;
-  if (error || !code) return res.redirect('/?error=denied');
+  const { code } = req.query;
+  if (!code) return res.redirect('/auth/discord');
 
   try {
     const token = await post('https://discord.com/api/v10/oauth2/token', {
-      client_id:     '1480416371614552145',
+      client_id: '1480416371614552145',
       client_secret: process.env.DISCORD_CLIENT_SECRET,
-      grant_type:    'authorization_code',
+      grant_type: 'authorization_code',
       code,
-      redirect_uri:  process.env.DISCORD_REDIRECT_URI
+      redirect_uri: process.env.DISCORD_REDIRECT_URI
     });
 
     if (token.error) return res.redirect('/?error=auth_failed');
@@ -41,29 +41,17 @@ export default async function handler(req, res) {
     const auth = `${token.token_type} ${token.access_token}`;
     const user = await get('https://discord.com/api/v10/users/@me', auth);
 
-    let isMember = true;
-    if (process.env.DISCORD_GUILD_ID) {
-        try {
-            const guilds = await get('https://discord.com/api/v10/users/@me/guilds', auth);
-            isMember = guilds.some(g => g.id === process.env.DISCORD_GUILD_ID);
-        } catch(e) { isMember = false; }
-    }
-
-    const avatar = user.avatar
-      ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`
-      : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discriminator||'0')%5}.png`;
-
     const userData = {
       id: user.id,
       username: user.username,
       displayName: user.global_name || user.username,
-      avatar,
-      isMember,
+      avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : `https://cdn.discordapp.com/embed/avatars/0.png`,
       loginAt: new Date().toISOString()
     };
 
-    res.setHeader('Set-Cookie', `tncity_user=${Buffer.from(JSON.stringify(userData)).toString('base64')}; Path=/; Max-Age=86400; SameSite=Lax`);
-    res.redirect('/'); 
+    const cookieValue = Buffer.from(JSON.stringify(userData)).toString('base64');
+    res.setHeader('Set-Cookie', `tncity_user=${cookieValue}; Path=/; Max-Age=86400; SameSite=Lax`);
+    res.redirect('/');
   } catch(e) {
     res.redirect('/?error=server_error');
   }
