@@ -26,7 +26,6 @@ function get(url, token) {
 export default async function handler(req, res) {
   const { code } = req.query;
   if (!code) return res.redirect('/auth/discord');
-
   try {
     const token = await post('https://discord.com/api/v10/oauth2/token', {
       client_id: '1480416371614552145',
@@ -35,22 +34,19 @@ export default async function handler(req, res) {
       code,
       redirect_uri: process.env.DISCORD_REDIRECT_URI
     });
-
     if (token.error) return res.redirect('/?error=auth_failed');
-
     const auth = `${token.token_type} ${token.access_token}`;
     const user = await get('https://discord.com/api/v10/users/@me', auth);
-
     const userData = {
       id: user.id,
       username: user.username,
       displayName: user.global_name || user.username,
-      avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : `https://cdn.discordapp.com/embed/avatars/0.png`,
+      avatar: user.avatar
+        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`
+        : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discriminator||'0')%5}.png`,
       loginAt: new Date().toISOString()
     };
-
-    const cookieValue = Buffer.from(JSON.stringify(userData)).toString('base64');
-    res.setHeader('Set-Cookie', `tncity_user=${cookieValue}; Path=/; Max-Age=86400; SameSite=Lax`);
+    res.setHeader('Set-Cookie', `tncity_user=${Buffer.from(JSON.stringify(userData)).toString('base64')}; Path=/; Max-Age=86400; SameSite=Lax`);
     res.redirect('/');
   } catch(e) {
     res.redirect('/?error=server_error');
