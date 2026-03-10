@@ -1,15 +1,9 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
+  "functions": {
+    "api/*.js": {
+      "runtime": "vercel-nodejs@20"
     }
-  ],
+  },
   "rewrites": [
     { "source": "/auth/discord", "destination": "/api/auth-discord.js" },
     { "source": "/auth/logout", "destination": "/api/auth-logout.js" },
